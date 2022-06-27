@@ -22,3 +22,5 @@ Some diagrams showing the probability of the coin landing on its side for multip
 
 Running the simulation
 ![example2](https://github.com/LeonZamel/Three-Sided-Coin/blob/master/example_data/example.PNG)
+
+## base
