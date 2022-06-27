@@ -15,9 +15,9 @@ import pandas as pd
 TESTS = 1000
 
 testValues = {
-    "Diameter": [17.3, 20, 7/3 * 10, math.e * 10, 28.2], # IN MM
-    "Mass": [5, 10, 15, 20], # IN GRAMS
-    "Restitution": [0.55, 0.6, 0.65, 0.70],
+    "Diameter": [20], # IN MM
+    "Mass": [5], # IN GRAMS
+    "Restitution": [0.55],
     "Force": [1],
     "Force application Time": [0.05],
     "Lateral friction": [0.5],
