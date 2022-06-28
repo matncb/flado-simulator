@@ -12,31 +12,24 @@ import pandas as pd
 # Number of tests after which to stop
 # or enter very large number and end simulation via pressing 'u'
 # Will test every combination of test values TESTS times
-TESTS = 1000
+TESTS = 4
 
-testValues = {
-    "Diameter": [20], # IN MM
-    "Mass": [5], # IN GRAMS
-    "Restitution": [0.55],
-    "Force": [1],
-    "Force application Time": [0.05],
-    "Lateral friction": [0.5],
-    "Spinning friction": [0.0005],
-    "Rolling friction": [0.002],
-    "Distance between coins": [10],
-    "Linear damping": [0.05],
-    "Angular damping": [0.05]
-}
+# Diameter of coin IN M
 
-# Width is fixed as 1 cm
-# Diameter of coin IN MM
-DIAMETER = 17.3
+RATIO = 0.6
+RADIUS = 0.0075
+
+DIAMETER = 2*RADIUS
+HEIGHT = RATIO * RADIUS
 
 # Mass in gram
-MASS = 5
+MASS = 2
 
 # Force with which to throw/flip coins
-FORCE = 1
+FORCE = 0
+
+#altura de lançamento
+ALTURA = 0.035
 
 # How long force is applied in seconds
 FORCE_APPLICATION_TIME = 0.05
@@ -44,17 +37,17 @@ FORCE_APPLICATION_TIME = 0.05
 # Restitution i.e. "bouncyness", keep below 1
 # higher = "bouncier"
 # ratio of final to initial relative velocity between two objects after collision
-RESTITUTION = 0.6
+RESTITUTION = 0.3
 
 # Friction
-LATERAL_FRICTION = 0.5
-SPINNING_FRICTION = 0.0005
-ROLLING_FRICTION = 0.002
+LATERAL_FRICTION = 0.3
+SPINNING_FRICTION = 0
+ROLLING_FRICTION = 0
 
 # Distance between coins in cm, coins will touch with lower values,
 # might lead to skewed results
 # keep above diameter
-DISTANCE_BETWEEN_COINS = 10
+DISTANCE_BETWEEN_COINS = 3
 
 # Linear and angular damping
 LINEAR_DAMPING = 0.05
@@ -63,7 +56,7 @@ ANGULAR_DAMPING = 0.05
 
 # -- Variables below are valid for all tests -- #
 # Number of objects per test
-OBJECTS = 100
+OBJECTS = 800
 
 # Time steps for physics simulation in seconds
 # Smaller value = more accurate simulation, but more computationally expensive
@@ -84,48 +77,19 @@ CUTOFF = 2
 
 # Slow down simulation each step to see what is happening
 # mainly for code refinement/debugging purposes
-SLOWDOWN = 0.0
+SLOWDOWN = 0
 
 SHOW_DEBUG_GUI = False
 
-testValues["Thickness"] = [10.0]
-prodValues = np.array([x for x in itertools.product(*testValues.values())]).transpose()
-
-df = pd.DataFrame(columns=["Heads","Tails","Side","Total"], index=pd.MultiIndex.from_arrays(prodValues, names=testValues.keys()))
-df["Heads"] = 0
-df["Tails"] = 0
-df["Side"] = 0
-df["Total"] = 0
-df = df.reorder_levels([
-    "Diameter",
-    "Thickness",
-    "Mass",
-    "Restitution",
-    "Force",
-    "Force application Time",
-    "Lateral friction",
-    "Spinning friction",
-    "Rolling friction",
-    "Distance between coins",
-    "Linear damping",
-    "Angular damping"])
-df.sort_index(level=[
-    "Diameter",
-    "Thickness",
-    "Mass",
-    "Restitution",
-    "Force",
-    "Force application Time",
-    "Lateral friction",
-    "Spinning friction",
-    "Rolling friction",
-    "Distance between coins",
-    "Linear damping",
-    "Angular damping"], inplace=True)
-
+data = {"Ratio": [RATIO], "Ps": [] }
+side = 0
+heads = 0
+tails = 0
+total = 0
 
 # Random distribution of SO(3)
 # see http://planning.cs.uiuc.edu/node198.html
+
 def generateRandomQuaternion():
     u1 = sysRand.random()
     u2 = sysRand.random()
@@ -154,94 +118,81 @@ print("------------------------------------")
 for test in range(TESTS):
     print("Test #" + str(test + 1))
     stopSim = False
-    for ind in df.index:
-        dfPart = df.loc[[ind]]
-        values = dict(zip(dfPart.index.names, dfPart.index.values[0]))
-        DIAMETER = values["Diameter"]
-        MASS = values["Mass"]
-        RESTITUTION = values["Restitution"]
-        FORCE = values["Force"]
-        FORCE_APPLICATION_TIME = values["Force application Time"]
-        LATERAL_FRICTION = values["Lateral friction"]
-        SPINNING_FRICTION = values["Spinning friction"]
-        ROLLING_FRICTION = values["Rolling friction"]
-        DISTANCE_BETWEEN_COINS = values["Distance between coins"]
-        LINEAR_DAMPING = values["Linear damping"]
-        ANGULAR_DAMPING = values["Angular damping"]
 
-        # Turn off rendering for building world
-        pybullet.configureDebugVisualizer(pybullet.COV_ENABLE_RENDERING, 0)
+    # Turn off rendering for building world
+    pybullet.configureDebugVisualizer(pybullet.COV_ENABLE_RENDERING, 0)
 
-        # Remove all objects
-        pybullet.resetSimulation()
-        pybullet.setGravity(0, 0, -9.80665 * SCALE)
+    # Remove all objects
+    pybullet.resetSimulation()
+    pybullet.setGravity(0, 0, -9.80665 * SCALE)
 
-        # Create ground plane
-        pybullet.createCollisionShape(pybullet.GEOM_PLANE)
-        pybullet.createMultiBody(0, 0)
-        pybullet.changeDynamics(0, -1, restitution=RESTITUTION, lateralFriction=LATERAL_FRICTION, spinningFriction=SPINNING_FRICTION, rollingFriction=ROLLING_FRICTION)
+    # Create ground plane
+    pybullet.createCollisionShape(pybullet.GEOM_PLANE)
+    pybullet.createMultiBody(0, 0)
+    pybullet.changeDynamics(0, -1, restitution=RESTITUTION, lateralFriction=LATERAL_FRICTION, spinningFriction=SPINNING_FRICTION, rollingFriction=ROLLING_FRICTION)
 
-        # Create collision shape for coin, which will be used for all bodies
-        colCylinder = pybullet.createCollisionShape(pybullet.GEOM_CYLINDER, radius=DIAMETER / 2 / 1000 * SCALE, height=0.01 * SCALE)
+    # Create collision shape for coin, which will be used for all bodies
+    colCylinder = pybullet.createCollisionShape(pybullet.GEOM_CYLINDER, radius=RADIUS * SCALE, height= HEIGHT * SCALE)
 
-        # Create bodies with random forces applied
-        for i in range(OBJECTS):
-            x = pybullet.createMultiBody(baseMass=MASS / 1000 * SCALE, baseCollisionShapeIndex=colCylinder,
-                                    basePosition=[i % 10 / 100 * DISTANCE_BETWEEN_COINS * SCALE, i / 10 / 100 * DISTANCE_BETWEEN_COINS * SCALE, 2], 
-                                    baseOrientation=generateRandomQuaternion())
+    # Create bodies with random forces applied
+    for i in range(OBJECTS):
+        x = pybullet.createMultiBody(baseMass=MASS / 1000 * SCALE, baseCollisionShapeIndex=colCylinder,
+                                basePosition=[i % 10 / 100 * DISTANCE_BETWEEN_COINS * SCALE, i / 10 / 100 * DISTANCE_BETWEEN_COINS * SCALE, ALTURA * SCALE], 
+                                baseOrientation=generateRandomQuaternion())
 
-            pybullet.changeDynamics(x, -1, linearDamping=LINEAR_DAMPING, angularDamping=ANGULAR_DAMPING, restitution=RESTITUTION,
-                                    lateralFriction=LATERAL_FRICTION, spinningFriction=SPINNING_FRICTION, rollingFriction=ROLLING_FRICTION)
+        pybullet.changeDynamics(x, -1, linearDamping=LINEAR_DAMPING, angularDamping=ANGULAR_DAMPING, restitution=RESTITUTION,
+                                lateralFriction=LATERAL_FRICTION, spinningFriction=SPINNING_FRICTION, rollingFriction=ROLLING_FRICTION)
 
-            pybullet.applyExternalForce(x, -1, [(sysRand.random() * 2 * FORCE - FORCE) * SCALE / STEPSIZE * FORCE_APPLICATION_TIME,
-                                                (sysRand.random() * 2 * FORCE - FORCE) * SCALE / STEPSIZE * FORCE_APPLICATION_TIME,
-                                                (sysRand.random() * 2 * FORCE - FORCE) * SCALE / STEPSIZE * FORCE_APPLICATION_TIME],
-                                    [(sysRand.random() * DIAMETER - DIAMETER / 2) / 100 * SCALE,
-                                    (sysRand.random() * DIAMETER - DIAMETER / 2) / 100 * SCALE,
-                                    (sysRand.random() * DIAMETER - DIAMETER / 2) / 100 * SCALE],
-                                    pybullet.LINK_FRAME)
-            
+        pybullet.applyExternalForce(x, -1, [(sysRand.random() * 2 * FORCE - FORCE) * SCALE / STEPSIZE * FORCE_APPLICATION_TIME,
+                                            (sysRand.random() * 2 * FORCE - FORCE) * SCALE / STEPSIZE * FORCE_APPLICATION_TIME,
+                                            (sysRand.random() * 2 * FORCE - FORCE) * SCALE / STEPSIZE * FORCE_APPLICATION_TIME],
+                                [(sysRand.random() * DIAMETER - DIAMETER / 2) / 100 * SCALE*0,
+                                (sysRand.random() * DIAMETER - DIAMETER / 2) / 100 * SCALE*0,
+                                (sysRand.random() * DIAMETER - DIAMETER / 2) / 100 * SCALE*0],
+                                pybullet.LINK_FRAME)
 
-        # Turn on rendering again
-        pybullet.configureDebugVisualizer(pybullet.COV_ENABLE_RENDERING, 1)
+        
 
-        for i in range(int(1/STEPSIZE * CUTOFF)):
-            pybullet.stepSimulation()
-            time.sleep(SLOWDOWN)
-            keys = pybullet.getKeyboardEvents()
-            for k in keys:
-                if(k == 117):
-                    if not stopSim:
-                        stopSim = True
-                        print("Will exit after this test finished")
+    # Turn on rendering again
+    pybullet.configureDebugVisualizer(pybullet.COV_ENABLE_RENDERING, 1)
 
-        # First object is ground plane -> ignore
-        for i in range(1, OBJECTS + 1):
-            pos, angle = pybullet.getBasePositionAndOrientation(i)
-            angle = pybullet.getEulerFromQuaternion(angle)
-            df.loc[ind]["Total"] += 1
-            # Check how coin landed:
-            angle = (angle[0] + 2 * math.pi) % (2 * math.pi)
+    for i in range(int(1/STEPSIZE * CUTOFF)):
+        pybullet.stepSimulation()
+        time.sleep(SLOWDOWN)
+        keys = pybullet.getKeyboardEvents()
+        for k in keys:
+            if(k == 117):
+                if not stopSim:
+                    stopSim = True
+                    print("Will exit after this test finished")
 
-            # Side
-            if math.pi / 2 - (math.pi / 2 - 1.3) <= angle <= math.pi / 2 + (math.pi / 2 - 1.3) or math.pi / 2 * 3 - (math.pi / 2 - 1.3) <= angle <= math.pi / 2 * 3 + (math.pi / 2 - 1.3):
-                df.loc[ind]["Side"] += 1
+    # First object is ground plane -> ignore
+    for i in range(1, OBJECTS + 1):
+        pos, angle = pybullet.getBasePositionAndOrientation(i)
+        angle = pybullet.getEulerFromQuaternion(angle)
+        total += 1
+        # Check how coin landed:
+        angle = (angle[0] + 2 * math.pi) % (2 * math.pi)
 
-            # Heads
-            if angle <= 1.3 or 2 * math.pi - 1.3 <= angle:
-                df.loc[ind]["Heads"] += 1
+        # Side
+        if math.pi / 2 - (math.pi / 2 - 1.3) <= angle <= math.pi / 2 + (math.pi / 2 - 1.3) or math.pi / 2 * 3 - (math.pi / 2 - 1.3) <= angle <= math.pi / 2 * 3 + (math.pi / 2 - 1.3):
+            side += 1
 
-            # Tails
-            if math.pi - 1.3 <= angle <= math.pi + 1.3:
-                df.loc[ind]["Tails"] += 1
+        # Heads
+        if angle <= 1.3 or 2 * math.pi - 1.3 <= angle:
+            heads += 1
+
+        # Tails
+        if math.pi - 1.3 <= angle <= math.pi + 1.3:
+            tails += 1
 
     if(stopSim):
         break
 
-
-currenttime = datetime.datetime.now().replace(microsecond=0)
-currenttime = currenttime.strftime("%Y-%m-%d %H-%M-%S" + ".csv")
-
-print(df)
-print("Writing data to file...")
-df.to_csv("TSC " + currenttime)
+print("Lado: " + str(side))
+print("Face 1: " + str(heads))
+print("Face 2: " + str(tails))
+print("Total : " + str(total))
+print("")
+data["Ps"] = side/total
+print("Probabilidade: " + str(data['Ps']))
