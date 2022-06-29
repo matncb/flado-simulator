@@ -13,16 +13,18 @@ import xlsxwriter
 # Number of tests after which to stop
 # or enter very large number and end simulation via pressing 'u'
 # Will test every combination of test values TESTS times
-TESTS = 2
+TESTS = 4
 
 # Force with which to throw/flip coins
-FORCE = 0.07
+FORCE = 0.0 # 0.1 #0.05 #0.02
+HFORCE = 0.5
 
 #altura de lançamento
-ALTURA = 0.035
+ALTURA = 0.03
 
 # How long force is applied in seconds
 FORCE_APPLICATION_TIME = 0.05
+HFORCE_APPLICATION_TIME = 0.05
 
 # Restitution i.e. "bouncyness", keep below 1
 # higher = "bouncier"
@@ -30,8 +32,8 @@ FORCE_APPLICATION_TIME = 0.05
 RESTITUTION = 0.3
 
 # Friction
-LATERAL_FRICTION = 0.3
-SPINNING_FRICTION = 0.05
+LATERAL_FRICTION = 0.3   #0.8
+SPINNING_FRICTION = 0.3
 ROLLING_FRICTION = 0.0
 
 # Distance between coins in cm, coins will touch with lower values,
@@ -40,13 +42,13 @@ ROLLING_FRICTION = 0.0
 DISTANCE_BETWEEN_COINS = 3
 
 # Linear and angular damping
-LINEAR_DAMPING = 0.05
-ANGULAR_DAMPING = 0.05
+LINEAR_DAMPING = 0.0
+ANGULAR_DAMPING = 0.0
 
 
 # -- Variables below are valid for all tests -- #
 # Number of objects per test
-OBJECTS = 500
+OBJECTS = 250
 
 # Time steps for physics simulation in seconds
 # Smaller value = more accurate simulation, but more computationally expensive
@@ -58,7 +60,7 @@ SUBSTEPS = 2
 
 # Used to scale up centimeters to decimeters, while keeping accurate physics
 # Bullet physics doesn't work well with objects at cm scale
-SCALE = 1
+SCALE = 10
 
 # Time after which to stop one run of simulation
 # must be high enough for all coins to settle, 
@@ -151,12 +153,12 @@ def simulate(ratio):
             pybullet.applyExternalForce(x, -1, [(sysRand.random() * 2 * FORCE - FORCE) * SCALE / STEPSIZE * FORCE_APPLICATION_TIME,
                                                 (sysRand.random() * 2 * FORCE - FORCE) * SCALE / STEPSIZE * FORCE_APPLICATION_TIME,
                                                 (sysRand.random() * 2 * FORCE - FORCE) * SCALE / STEPSIZE * FORCE_APPLICATION_TIME],
-                                    [(sysRand.random() * DIAMETER - DIAMETER / 2) / 100 * SCALE*0,
-                                    (sysRand.random() * DIAMETER - DIAMETER / 2) / 100 * SCALE*0,
-                                    (sysRand.random() * DIAMETER - DIAMETER / 2) / 100 * SCALE*0],
+                                    [(sysRand.random() * DIAMETER - DIAMETER / 2) / 100 * SCALE,
+                                    (sysRand.random() * DIAMETER - DIAMETER / 2) / 100 * SCALE,
+                                    (sysRand.random() * DIAMETER - DIAMETER / 2) / 100 * SCALE],
                                     pybullet.LINK_FRAME)
 
-            
+            pybullet.applyExternalForce(x, -1, [HFORCE * SCALE / STEPSIZE * HFORCE_APPLICATION_TIME, 0, 0],[0,0,0], pybullet.LINK_FRAME)
 
         # Turn on rendering again
         pybullet.configureDebugVisualizer(pybullet.COV_ENABLE_RENDERING, 1)
@@ -207,7 +209,7 @@ for i in razoes:
 print("")
 print(data)
 
-workbook = xlsxwriter.Workbook('simulacoes/teste3.xlsx')
+workbook = xlsxwriter.Workbook('simulacoes/horizontal.xlsx')
 worksheet = workbook.add_worksheet()
 
 for i in range(len(razoes)):
