@@ -1,9 +1,10 @@
+from pickle import FALSE
 import time
 import datetime
 import math
 import random
 import itertools
-
+import time
 import numpy as np
 
 import pybullet
@@ -17,14 +18,13 @@ TESTS = 4
 
 # Force with which to throw/flip coins
 FORCE = 0.0 # 0.1 #0.05 #0.02
-HFORCE = 0.5
+HVELOCITY = 0.0
 
-#altura de lançamento
-ALTURA = 0.03
+#altura de lançamento em m
+ALTURA = 0.02
 
 # How long force is applied in seconds
 FORCE_APPLICATION_TIME = 0.05
-HFORCE_APPLICATION_TIME = 0.05
 
 # Restitution i.e. "bouncyness", keep below 1
 # higher = "bouncier"
@@ -32,7 +32,7 @@ HFORCE_APPLICATION_TIME = 0.05
 RESTITUTION = 0.3
 
 # Friction
-LATERAL_FRICTION = 0.3   #0.8
+LATERAL_FRICTION = 0.3  #0.8
 SPINNING_FRICTION = 0.3
 ROLLING_FRICTION = 0.0
 
@@ -50,13 +50,17 @@ ANGULAR_DAMPING = 0.0
 # Number of objects per test
 OBJECTS = 250
 
+CAIXA = True
+if CAIXA:
+    OBJECTS = 16
+
 # Time steps for physics simulation in seconds
 # Smaller value = more accurate simulation, but more computationally expensive
-STEPSIZE = 1/120.0
+STEPSIZE = 1/120.0  #120
 
 # Substeps per Timestep
 # Higher value = more accurate simulation, but more computationally expensive
-SUBSTEPS = 2
+SUBSTEPS = 50
 
 # Used to scale up centimeters to decimeters, while keeping accurate physics
 # Bullet physics doesn't work well with objects at cm scale
@@ -69,7 +73,7 @@ CUTOFF = 2
 
 # Slow down simulation each step to see what is happening
 # mainly for code refinement/debugging purposes
-SLOWDOWN = 0.0
+SLOWDOWN = 0.1
 
 SHOW_DEBUG_GUI = False
 
@@ -137,15 +141,37 @@ def simulate(ratio):
         pybullet.createCollisionShape(pybullet.GEOM_PLANE)
         pybullet.createMultiBody(0, 0)
         pybullet.changeDynamics(0, -1, restitution=RESTITUTION, lateralFriction=LATERAL_FRICTION, spinningFriction=SPINNING_FRICTION, rollingFriction=ROLLING_FRICTION)
+        
+        #Create walls
+
+        if CAIXA:
+            wall_collision_shapeY = pybullet.createCollisionShape(pybullet.GEOM_BOX, halfExtents=(0.003 * SCALE, 0.31/2 * SCALE, 0.31/2 *SCALE))
+            wall_collision_shapeX = pybullet.createCollisionShape(pybullet.GEOM_BOX, halfExtents=(0.31/2* SCALE, 0.003 * SCALE, 0.31/2*SCALE))
+            wall1 = pybullet.createMultiBody(0., wall_collision_shapeY, -1, basePosition=(-0.31/2 * SCALE, 0, 0.))
+            wall2 = pybullet.createMultiBody(0., wall_collision_shapeY, -1, basePosition=(0.31/2 * SCALE, 0, 0.))
+            wall3 = pybullet.createMultiBody(0., wall_collision_shapeX, -1, basePosition=(0 * SCALE, -0.31/2 * SCALE, 0.))
+            wall4 = pybullet.createMultiBody(0., wall_collision_shapeX, -1, basePosition=(0 * SCALE, 0.31/2 * SCALE, 0.))
+            pybullet.changeDynamics(wall1, -1, restitution=1.)
+            pybullet.changeDynamics(wall2, -1, restitution=1.)
+            pybullet.changeDynamics(wall3, -1, restitution=1.)
+            pybullet.changeDynamics(wall4, -1, restitution=1.)
+
 
         # Create collision shape for coin, which will be used for all bodies
         colCylinder = pybullet.createCollisionShape(pybullet.GEOM_CYLINDER, radius=RADIUS * SCALE, height= HEIGHT * SCALE)
 
         # Create bodies with random forces applied
         for i in range(OBJECTS):
-            x = pybullet.createMultiBody(baseMass= MASS / 1000 * SCALE, baseCollisionShapeIndex=colCylinder,
-                                    basePosition=[i % 10 / 100 * DISTANCE_BETWEEN_COINS * SCALE, i / 10 / 100 * DISTANCE_BETWEEN_COINS * SCALE, ALTURA * SCALE], 
-                                    baseOrientation=generateRandomQuaternion())
+
+            if not CAIXA:
+                x = pybullet.createMultiBody(baseMass= MASS / 1000 * SCALE, baseCollisionShapeIndex=colCylinder,
+                                        basePosition=[i % 10 / 100 * DISTANCE_BETWEEN_COINS * SCALE, i / 10 / 100 * DISTANCE_BETWEEN_COINS * SCALE, ALTURA * SCALE], 
+                                        baseOrientation=generateRandomQuaternion())
+            else:
+                x = pybullet.createMultiBody(baseMass= MASS / 1000 * SCALE, baseCollisionShapeIndex=colCylinder,
+                                        basePosition=[(-0.03/2 +  0.06 * i )*SCALE,  0, ALTURA * SCALE], 
+                                        baseOrientation=generateRandomQuaternion())
+            
 
             pybullet.changeDynamics(x, -1, linearDamping=LINEAR_DAMPING, angularDamping=ANGULAR_DAMPING, restitution=RESTITUTION,
                                     lateralFriction=LATERAL_FRICTION, spinningFriction=SPINNING_FRICTION, rollingFriction=ROLLING_FRICTION)
@@ -158,7 +184,8 @@ def simulate(ratio):
                                     (sysRand.random() * DIAMETER - DIAMETER / 2) / 100 * SCALE],
                                     pybullet.LINK_FRAME)
 
-            pybullet.applyExternalForce(x, -1, [HFORCE * SCALE / STEPSIZE * HFORCE_APPLICATION_TIME, 0, 0],[0,0,0], pybullet.LINK_FRAME)
+            pybullet.resetBaseVelocity(x, (HVELOCITY * SCALE, 0, 0), (0, 0, 0))
+
 
         # Turn on rendering again
         pybullet.configureDebugVisualizer(pybullet.COV_ENABLE_RENDERING, 1)
@@ -209,7 +236,7 @@ for i in razoes:
 print("")
 print(data)
 
-workbook = xlsxwriter.Workbook('simulacoes/horizontal.xlsx')
+workbook = xlsxwriter.Workbook('simulacoes/teste4.xlsx')
 worksheet = workbook.add_worksheet()
 
 for i in range(len(razoes)):
