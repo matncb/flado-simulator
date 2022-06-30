@@ -14,14 +14,14 @@ import xlsxwriter
 # Number of tests after which to stop
 # or enter very large number and end simulation via pressing 'u'
 # Will test every combination of test values TESTS times
-TESTS = 4
+TESTS = 20
 
 # Force with which to throw/flip coins
 FORCE = 0.0 # 0.1 #0.05 #0.02
 HVELOCITY = 0.0
 
 #altura de lançamento em m
-ALTURA = 0.02
+ALTURA = 0.03
 
 # How long force is applied in seconds
 FORCE_APPLICATION_TIME = 0.05
@@ -29,7 +29,8 @@ FORCE_APPLICATION_TIME = 0.05
 # Restitution i.e. "bouncyness", keep below 1
 # higher = "bouncier"
 # ratio of final to initial relative velocity between two objects after collision
-RESTITUTION = 0.3
+RESTITUTION = 0.7
+WALL_RESTITUTION = 0.84
 
 # Friction
 LATERAL_FRICTION = 0.3  #0.8
@@ -56,11 +57,11 @@ if CAIXA:
 
 # Time steps for physics simulation in seconds
 # Smaller value = more accurate simulation, but more computationally expensive
-STEPSIZE = 1/120.0  #120
+STEPSIZE = 1/20.0  #120
 
 # Substeps per Timestep
 # Higher value = more accurate simulation, but more computationally expensive
-SUBSTEPS = 50
+SUBSTEPS = 100
 
 # Used to scale up centimeters to decimeters, while keeping accurate physics
 # Bullet physics doesn't work well with objects at cm scale
@@ -73,7 +74,7 @@ CUTOFF = 2
 
 # Slow down simulation each step to see what is happening
 # mainly for code refinement/debugging purposes
-SLOWDOWN = 0.1
+SLOWDOWN = 0
 
 SHOW_DEBUG_GUI = False
 
@@ -140,7 +141,7 @@ def simulate(ratio):
         # Create ground plane
         pybullet.createCollisionShape(pybullet.GEOM_PLANE)
         pybullet.createMultiBody(0, 0)
-        pybullet.changeDynamics(0, -1, restitution=RESTITUTION, lateralFriction=LATERAL_FRICTION, spinningFriction=SPINNING_FRICTION, rollingFriction=ROLLING_FRICTION)
+        pybullet.changeDynamics(0, -1, restitution=0.42, lateralFriction=LATERAL_FRICTION, spinningFriction=SPINNING_FRICTION, rollingFriction=ROLLING_FRICTION)
         
         #Create walls
 
@@ -151,10 +152,10 @@ def simulate(ratio):
             wall2 = pybullet.createMultiBody(0., wall_collision_shapeY, -1, basePosition=(0.31/2 * SCALE, 0, 0.))
             wall3 = pybullet.createMultiBody(0., wall_collision_shapeX, -1, basePosition=(0 * SCALE, -0.31/2 * SCALE, 0.))
             wall4 = pybullet.createMultiBody(0., wall_collision_shapeX, -1, basePosition=(0 * SCALE, 0.31/2 * SCALE, 0.))
-            pybullet.changeDynamics(wall1, -1, restitution=1.)
-            pybullet.changeDynamics(wall2, -1, restitution=1.)
-            pybullet.changeDynamics(wall3, -1, restitution=1.)
-            pybullet.changeDynamics(wall4, -1, restitution=1.)
+            pybullet.changeDynamics(wall1, -1, restitution=WALL_RESTITUTION, lateralFriction=LATERAL_FRICTION, spinningFriction=SPINNING_FRICTION, rollingFriction=ROLLING_FRICTION)
+            pybullet.changeDynamics(wall2, -1, restitution=WALL_RESTITUTION, lateralFriction=LATERAL_FRICTION, spinningFriction=SPINNING_FRICTION, rollingFriction=ROLLING_FRICTION)
+            pybullet.changeDynamics(wall3, -1, restitution=WALL_RESTITUTION, lateralFriction=LATERAL_FRICTION, spinningFriction=SPINNING_FRICTION, rollingFriction=ROLLING_FRICTION)
+            pybullet.changeDynamics(wall4, -1, restitution=WALL_RESTITUTION, lateralFriction=LATERAL_FRICTION, spinningFriction=SPINNING_FRICTION, rollingFriction=ROLLING_FRICTION)
 
 
         # Create collision shape for coin, which will be used for all bodies
@@ -168,13 +169,17 @@ def simulate(ratio):
                                         basePosition=[i % 10 / 100 * DISTANCE_BETWEEN_COINS * SCALE, i / 10 / 100 * DISTANCE_BETWEEN_COINS * SCALE, ALTURA * SCALE], 
                                         baseOrientation=generateRandomQuaternion())
             else:
+                p  = [[-9, -9], [-3, -9], [3, -9], [9, -9], [-9, -3], [-3, -3], [3, -3], [9, -3], [-9, 3], [-3, 3], [3, 3], [9, 3], [-9, 9], [-3, 9], [3, 9], [9, 9]]
                 x = pybullet.createMultiBody(baseMass= MASS / 1000 * SCALE, baseCollisionShapeIndex=colCylinder,
-                                        basePosition=[(-0.03/2 +  0.06 * i )*SCALE,  0, ALTURA * SCALE], 
+                                        basePosition=[p[i][0]*SCALE/100,  p[i][1] * SCALE/100, ALTURA * SCALE], 
                                         baseOrientation=generateRandomQuaternion())
             
 
             pybullet.changeDynamics(x, -1, linearDamping=LINEAR_DAMPING, angularDamping=ANGULAR_DAMPING, restitution=RESTITUTION,
                                     lateralFriction=LATERAL_FRICTION, spinningFriction=SPINNING_FRICTION, rollingFriction=ROLLING_FRICTION)
+
+            #pybullet.changeDynamics(x, -1, linearDamping=0, angularDamping=0, restitution=1,
+                                    #lateralFriction=1, spinningFriction=1, rollingFriction=1)
 
             pybullet.applyExternalForce(x, -1, [(sysRand.random() * 2 * FORCE - FORCE) * SCALE / STEPSIZE * FORCE_APPLICATION_TIME,
                                                 (sysRand.random() * 2 * FORCE - FORCE) * SCALE / STEPSIZE * FORCE_APPLICATION_TIME,
@@ -236,7 +241,7 @@ for i in razoes:
 print("")
 print(data)
 
-workbook = xlsxwriter.Workbook('simulacoes/teste4.xlsx')
+workbook = xlsxwriter.Workbook('simulacoes/teste.xlsx')
 worksheet = workbook.add_worksheet()
 
 for i in range(len(razoes)):
