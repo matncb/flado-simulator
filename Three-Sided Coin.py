@@ -17,8 +17,8 @@ import xlsxwriter
 TESTS = 20
 
 # Force with which to throw/flip coins
-FORCE = 0.0 # 0.1 #0.05 #0.02
-HVELOCITY = 0.0
+FORCE = 0.02 # 0.1 #0.05 #0.02
+HVELOCITY = 0
 
 #altura de lançamento em m
 ALTURA = 0.03
@@ -29,12 +29,12 @@ FORCE_APPLICATION_TIME = 0.05
 # Restitution i.e. "bouncyness", keep below 1
 # higher = "bouncier"
 # ratio of final to initial relative velocity between two objects after collision
-RESTITUTION = 0.7
-WALL_RESTITUTION = 0.84
+RESTITUTION = 0.5
+WALL_RESTITUTION = 1
 
 # Friction
-LATERAL_FRICTION = 0.3  #0.8
-SPINNING_FRICTION = 0.3
+LATERAL_FRICTION = 0.8  #0.8
+SPINNING_FRICTION = 0.8
 ROLLING_FRICTION = 0.0
 
 # Distance between coins in cm, coins will touch with lower values,
@@ -61,7 +61,7 @@ STEPSIZE = 1/20.0  #120
 
 # Substeps per Timestep
 # Higher value = more accurate simulation, but more computationally expensive
-SUBSTEPS = 100
+SUBSTEPS = 50
 
 # Used to scale up centimeters to decimeters, while keeping accurate physics
 # Bullet physics doesn't work well with objects at cm scale
@@ -141,7 +141,7 @@ def simulate(ratio):
         # Create ground plane
         pybullet.createCollisionShape(pybullet.GEOM_PLANE)
         pybullet.createMultiBody(0, 0)
-        pybullet.changeDynamics(0, -1, restitution=0.42, lateralFriction=LATERAL_FRICTION, spinningFriction=SPINNING_FRICTION, rollingFriction=ROLLING_FRICTION)
+        pybullet.changeDynamics(0, -1, restitution=0.1, lateralFriction=LATERAL_FRICTION, spinningFriction=SPINNING_FRICTION, rollingFriction=ROLLING_FRICTION)
         
         #Create walls
 
@@ -241,7 +241,7 @@ for i in razoes:
 print("")
 print(data)
 
-workbook = xlsxwriter.Workbook('simulacoes/teste.xlsx')
+workbook = xlsxwriter.Workbook('simulacoes/teste2.xlsx')
 worksheet = workbook.add_worksheet()
 
 for i in range(len(razoes)):
